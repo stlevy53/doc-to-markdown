@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Integration Guide</title>
+</head>
+<body>
+    <div id="main-content" class="wiki-content">
+        <h1>API Integration Guide</h1>
+
+        <div class="confluence-information-macro confluence-information-macro-information">
+            <div class="confluence-information-macro-body">
+                <p>This guide covers the REST API v2. For v1 documentation, see the legacy docs.</p>
+            </div>
+        </div>
+
+        <h2>Authentication</h2>
+        <p>All API requests require a Bearer token. Generate one from your
+        <a href="/settings/api-keys">account settings</a>.</p>
+
+        <div class="code panel pdl" style="border-width: 1px;">
+            <div class="codeHeader panelHeader pdl"><b>Example: Get Auth Token</b></div>
+            <div class="codeContent panelContent pdl">
+                <pre class="syntaxhighlighter-pre" data-syntaxhighlighter-params="brush: bash">
+curl -X POST https://api.example.com/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "***"}'
+                </pre>
+            </div>
+        </div>
+
+        <h2>Endpoints</h2>
+
+        <table class="confluenceTable">
+            <thead>
+                <tr>
+                    <th class="confluenceTh">Method</th>
+                    <th class="confluenceTh">Path</th>
+                    <th class="confluenceTh">Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="confluenceTd">GET</td>
+                    <td class="confluenceTd">/api/v2/users</td>
+                    <td class="confluenceTd">List all users</td>
+                </tr>
+                <tr>
+                    <td class="confluenceTd">POST</td>
+                    <td class="confluenceTd">/api/v2/users</td>
+                    <td class="confluenceTd">Create a new user</td>
+                </tr>
+                <tr>
+                    <td class="confluenceTd">GET</td>
+                    <td class="confluenceTd">/api/v2/users/:id</td>
+                    <td class="confluenceTd">Get user by ID</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Rate Limits</h2>
+
+        <div class="confluence-information-macro confluence-information-macro-warning">
+            <div class="confluence-information-macro-body">
+                <p>Exceeding rate limits will result in a 429 response. Implement exponential backoff.</p>
+            </div>
+        </div>
+
+        <ul>
+            <li>Standard tier: 100 requests/minute</li>
+            <li>Pro tier: 1,000 requests/minute</li>
+            <li>Enterprise: Custom limits</li>
+        </ul>
+
+        <h3>Response Codes</h3>
+        <ol>
+            <li><strong>200</strong> - Success</li>
+            <li><strong>401</strong> - Unauthorized (check your token)</li>
+            <li><strong>429</strong> - Rate limited (back off and retry)</li>
+            <li><strong>500</strong> - Server error (contact support)</li>
+        </ol>
+
+        <div class="confluence-information-macro confluence-information-macro-tip">
+            <div class="confluence-information-macro-body">
+                <p>Use the <code>X-RateLimit-Remaining</code> header to monitor your usage before hitting limits.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

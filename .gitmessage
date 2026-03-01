@@ -1,0 +1,16 @@
+# <type>: <subject>
+#
+# Types:
+#   feat     — New feature or capability
+#   fix      — Bug fix
+#   docs     — Documentation only
+#   skill    — New or updated conversion skill
+#   cli      — CLI tool changes
+#   example  — New or updated examples
+#
+# Rules:
+#   - Imperative mood ("add" not "added")
+#   - No period at end
+#   - 50 char subject limit
+#   - Blank line before body
+#   - Reference issues with #123

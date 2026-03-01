@@ -1,0 +1,35 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+*.egg
+
+# IDE files
+.idea/
+.vscode/
+.cursor/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Project-specific
+test-output/
+*.tmp.md
