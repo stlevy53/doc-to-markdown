@@ -82,22 +82,45 @@ def _get_font_segments(page, exclude_bboxes=None):
     current_size = None
     current_bold = False
     current_top = None
+    prev_x1 = None
+
+    X_GAP_THRESHOLD = 12  # pts: large horizontal gap means separate fields
+    X_WRAP_THRESHOLD = -50  # pts: text wrapped to far left
 
     for char in chars:
         size = round(float(char.get("size", 12)), 1)
         fontname = char.get("fontname", "")
         bold = "bold" in fontname.lower() or "black" in fontname.lower()
         top = round(float(char.get("top", 0)), 1)
+        x0 = float(char.get("x0", 0))
+        x1 = float(char.get("x1", 0))
 
-        if size != current_size or (bold != current_bold and char["text"].strip()):
+        # Detect large horizontal gap (separate fields) or wrap to left
+        # Only check gaps between non-whitespace chars to avoid stray spaces
+        x_break = False
+        if prev_x1 is not None and current_text and char["text"].strip():
+            x_diff = x0 - prev_x1
+            if x_diff > X_GAP_THRESHOLD or x_diff < X_WRAP_THRESHOLD:
+                x_break = True
+
+        if x_break or size != current_size or (bold != current_bold and char["text"].strip()):
             if current_text and current_size is not None:
-                segments.append(("".join(current_text), current_size, current_bold, current_top))
+                text_so_far = "".join(current_text)
+                # If x-gap break on same Y line, append newline to force line separation
+                if x_break and current_top is not None and abs(top - current_top) < 3.0:
+                    text_so_far += "\n"
+                segments.append((text_so_far, current_size, current_bold, current_top))
             current_text = [char["text"]]
             current_size = size
             current_bold = bold
             current_top = top
         else:
             current_text.append(char["text"])
+
+        # Only track x1 for non-whitespace chars to avoid stray spaces
+        # creating false gaps
+        if char["text"].strip():
+            prev_x1 = x1
 
     if current_text and current_size is not None:
         segments.append(("".join(current_text), current_size, current_bold, current_top))
@@ -220,7 +243,9 @@ def _process_page(page, heading_map, body_size, exclude_bboxes=None):
     segments = _get_font_segments(page, exclude_bboxes)
     if not segments:
         text = page.extract_text()
-        return text.split("\n") if text else []
+        if text:
+            return [(line, 0.0) for line in text.split("\n")]
+        return []
 
     # Group segments into lines based on Y position (top coordinate)
     # Lines on the same Y (within tolerance) belong together
@@ -273,7 +298,7 @@ def _process_page(page, heading_map, body_size, exclude_bboxes=None):
     # Use vertical gaps between lines to detect paragraph breaks
     PARAGRAPH_GAP = 5.0  # points of vertical space indicating a paragraph break
 
-    output = []
+    output = []  # list of (line_text, top_y)
     prev_top = None
     prev_was_heading = False
 
@@ -282,19 +307,19 @@ def _process_page(page, heading_map, body_size, exclude_bboxes=None):
         if prev_top is not None:
             gap = top - prev_top
             if gap > PARAGRAPH_GAP or prev_was_heading:
-                output.append("")
+                output.append(("", top))
 
         if heading_level:
             prefix = "#" * heading_level + " "
-            output.append(prefix + text)
+            output.append((prefix + text, top))
             prev_was_heading = True
         else:
             # Check for list items
             marker, content = _detect_list_item(text)
             if marker:
-                output.append(f"{marker} {content}")
+                output.append((f"{marker} {content}", top))
             else:
-                output.append(text)
+                output.append((text, top))
             prev_was_heading = False
 
         prev_top = top
@@ -328,53 +353,109 @@ def convert_pdf(filepath):
 
         repeating = _detect_repeating_lines(pages_lines)
 
-        # Second pass: process each page
-        output = []
+        # Second pass: collect all page data
+        page_data = []  # list of (page_num, table_bboxes, detected_tables, line_tuples)
 
         for page_num, page in enumerate(pdf.pages):
-            # Find tables and their bounding boxes
             table_bboxes = []
-            table_mds = []
+            detected_tables = []  # (col_count, table_data, has_header)
 
             for table in page.find_tables():
                 table_bboxes.append(table.bbox)
                 table_data = table.extract()
-                if table_data:
-                    table_md = _convert_table_to_markdown(table_data)
-                    if table_md:
-                        table_mds.append((table.bbox[1], table_md))  # (top_y, markdown)
+                if table_data and table_data[0]:
+                    # Check if first row looks like a header (non-empty text, not data-like)
+                    first_row = table_data[0]
+                    has_header = any(
+                        cell and not re.match(r"^\d", str(cell).strip())
+                        and len(str(cell).strip()) < 40
+                        for cell in first_row
+                    )
+                    detected_tables.append((len(table_data[0]), table_data, has_header))
 
-            # Process non-table text with table regions excluded
-            lines = _process_page(page, heading_map, body_size, exclude_bboxes=table_bboxes)
+            line_tuples = _process_page(page, heading_map, body_size, exclude_bboxes=table_bboxes)
+            page_data.append((page_num, table_bboxes, detected_tables, line_tuples))
 
+        # Cross-page table merging: merge continuation tables into previous
+        # A continuation table is at the top of a page with the same column count
+        # as the last table on the previous page, and has no real header row
+        all_page_tables = []  # list of (page_num, table_index, col_count, data, is_continuation)
+        for page_num, _bboxes, detected_tables, _lines in page_data:
+            for t_idx, (col_count, data, has_header) in enumerate(detected_tables):
+                all_page_tables.append((page_num, t_idx, col_count, data, has_header))
+
+        # Mark continuation tables and merge them
+        def _looks_like_header_row(row):
+            """Check if row looks like a table header (short labels, no digits)."""
+            return all(
+                cell and len(str(cell).strip()) < 30
+                and not re.search(r"\d", str(cell))
+                for cell in row if cell and str(cell).strip()
+            )
+
+        merged_away = set()  # (page_num, t_idx) of tables merged into a previous one
+        for i in range(1, len(all_page_tables)):
+            p_num, t_idx, cols, data, has_header = all_page_tables[i]
+            prev_p, prev_t, prev_cols, prev_data, _ = all_page_tables[i - 1]
+            # Continuation: first table on new page, same col count
+            # Don't merge if the new table has a distinct header row
+            is_different_table = (
+                data[0] != prev_data[0]
+                and _looks_like_header_row(data[0])
+            )
+            if (p_num == prev_p + 1 and t_idx == 0 and cols == prev_cols
+                    and not is_different_table):
+                # Merge into previous: skip header row if it duplicates column names
+                if has_header and data[0] == prev_data[0]:
+                    merge_rows = data[1:]
+                else:
+                    merge_rows = data
+                # Update previous table's data in-place
+                all_page_tables[i - 1] = (prev_p, prev_t, prev_cols, prev_data + merge_rows, True)
+                merged_away.add((p_num, t_idx))
+
+        # Build lookup of merged table data by (page_num, t_idx)
+        merged_table_data = {}
+        for p_num, t_idx, cols, data, _ in all_page_tables:
+            if (p_num, t_idx) not in merged_away:
+                merged_table_data[(p_num, t_idx)] = data
+
+        # Third pass: build output
+        output = []
+
+        for page_num, table_bboxes, detected_tables, line_tuples in page_data:
             # Filter headers/footers and page numbers
             filtered_lines = []
-            for line in lines:
-                stripped = line.strip()
+            for line_text, top_y in line_tuples:
+                stripped = line_text.strip()
                 if stripped in repeating:
                     continue
                 if _is_page_number(stripped, page_num + 1, total_pages):
                     continue
-                filtered_lines.append(line)
+                filtered_lines.append((line_text, top_y))
 
-            # Interleave tables at approximate positions
-            # For simplicity, insert tables where they appear vertically
-            if table_mds:
-                # Sort tables by vertical position
-                table_mds.sort(key=lambda t: t[0])
+            # Build tables for this page
+            page_tables = []
+            for t_idx, (col_count, _orig_data, _has_header) in enumerate(detected_tables):
+                if (page_num, t_idx) in merged_away:
+                    continue
+                final_data = merged_table_data.get((page_num, t_idx), _orig_data)
+                table_md = _convert_table_to_markdown(final_data)
+                if table_md:
+                    top_y = table_bboxes[t_idx][1] if t_idx < len(table_bboxes) else 0
+                    page_tables.append((top_y, table_md))
 
-                # Add non-table lines first, then tables
-                # (Better heuristic: insert tables between text blocks)
-                for line in filtered_lines:
-                    output.append(line)
+            # Build unified list sorted by Y position
+            unified = []
+            for line_text, top_y in filtered_lines:
+                unified.append((top_y, line_text))
+            for top_y, table_md in page_tables:
+                unified.append((top_y, "\n" + table_md + "\n"))
 
-                for _top_y, table_md in table_mds:
-                    output.append("")
-                    output.append(table_md)
-                    output.append("")
-            else:
-                for line in filtered_lines:
-                    output.append(line)
+            unified.sort(key=lambda item: item[0])
+
+            for _y, content in unified:
+                output.append(content)
 
             # Page break
             output.append("")
