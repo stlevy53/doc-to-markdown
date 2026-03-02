@@ -30,6 +30,10 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 | PDF | Direct | CLI | ✅ |
 | Confluence | HTML export | CLI | ✅ |
 
+## 🌐 Web UI
+
+**[Try it in your browser](https://tiberium-ai.github.io/doc-to-markdown/)** — drag and drop a `.docx` or `.html` file and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
+
 ## 🚀 Quick Start
 
 Install the CLI:
