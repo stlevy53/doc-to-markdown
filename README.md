@@ -2,7 +2,7 @@
 ┌─────────────────────────────────────────────┐
 │           doc-to-markdown                   │
 │                                             │
-│   v0.1.0  •  Feb 28 2026                   │
+│   v0.2.0  •  Mar 2 2026                     │
 │   CC BY-NC-SA 4.0                           │
 └─────────────────────────────────────────────┘
 ```
@@ -23,16 +23,16 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 
 ## 📋 Format Support Matrix
 
-| Format | Source | Method | Status |
-|--------|--------|--------|--------|
-| Google Docs | Export to `.docx` | CLI | ✅ |
-| Word `.docx` | Direct | CLI | ✅ |
-| PDF | Direct | CLI | ✅ |
-| Confluence | HTML export | CLI | ✅ |
+| Format | Source | CLI | Web UI |
+|--------|--------|-----|--------|
+| Google Docs | Export to `.docx` | ✅ | ✅ |
+| Word `.docx` | Direct | ✅ | ✅ |
+| PDF | Direct | ✅ | -- |
+| Confluence | HTML export | ✅ | ✅ |
 
 ## 🌐 Web UI
 
-**[Try it in your browser](https://tiberium-ai.github.io/doc-to-markdown/)** — drag and drop a `.docx` or `.html` file and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
+**[Try it in your browser](https://stlevy53.github.io/doc-to-markdown/)** — drag and drop a `.docx` or `.html` file and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
 
 ## 🚀 Quick Start
 
