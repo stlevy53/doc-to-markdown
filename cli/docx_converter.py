@@ -121,12 +121,13 @@ def _flush_group(texts, bold, italic):
     merged = "".join(texts)
     if not merged:
         return ""
-    if bold and italic:
-        return f"***{merged}***"
-    elif bold:
-        return f"**{merged}**"
-    elif italic:
-        return f"*{merged}*"
+    if bold or italic:
+        # Move trailing whitespace outside the markers so we don't
+        # produce broken output like **Objective 1 **
+        stripped = merged.rstrip()
+        trailing = merged[len(stripped):]
+        marker = "***" if (bold and italic) else ("**" if bold else "*")
+        return f"{marker}{stripped}{marker}{trailing}"
     return merged
 
 
