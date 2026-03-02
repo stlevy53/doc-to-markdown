@@ -116,17 +116,46 @@ def _extract_hyperlinks(paragraph):
     return hyperlink_map
 
 
+def _flush_group(texts, bold, italic):
+    """Merge consecutive run texts and wrap with formatting markers once."""
+    merged = "".join(texts)
+    if not merged:
+        return ""
+    if bold and italic:
+        return f"***{merged}***"
+    elif bold:
+        return f"**{merged}**"
+    elif italic:
+        return f"*{merged}*"
+    return merged
+
+
 def _get_paragraph_text(paragraph):
     """Extract paragraph text with inline formatting and hyperlinks.
 
     Walks the paragraph's XML children to handle both regular runs
-    and hyperlink elements in document order.
+    and hyperlink elements in document order. Consecutive runs with
+    the same formatting are merged before wrapping to avoid broken
+    markers like ``**System ****Team**``.
     """
+    from docx.text.run import Run
+
     rels = paragraph.part.rels
     parts = []
+    current_fmt = None  # (bold, italic) tuple
+    current_texts = []
+
+    def flush():
+        nonlocal current_fmt, current_texts
+        if current_texts:
+            bold, italic = current_fmt
+            parts.append(_flush_group(current_texts, bold, italic))
+            current_texts = []
+            current_fmt = None
 
     for child in paragraph._element:
         if child.tag == HYPERLINK_TAG:
+            flush()
             # Extract hyperlink
             r_id = child.get(qn("r:id"))
             url = ""
@@ -146,11 +175,19 @@ def _get_paragraph_text(paragraph):
                 parts.append(link_text)
 
         elif child.tag == RUN_TAG:
-            # Regular run - apply formatting
-            from docx.text.run import Run
             run = Run(child, paragraph)
-            parts.append(_format_run_text(run))
+            text = run.text
+            if not text:
+                continue
+            fmt = (_run_is_bold(run), _run_is_italic(run))
+            if fmt == current_fmt:
+                current_texts.append(text)
+            else:
+                flush()
+                current_fmt = fmt
+                current_texts = [text]
 
+    flush()
     return "".join(parts)
 
 
