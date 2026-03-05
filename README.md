@@ -3,7 +3,7 @@
 │           doc-to-markdown                   │
 │                                             │
 │   v0.3.0  •  Mar 4 2026                     │
-│   CC BY-NC-SA 4.0                           │
+│   MIT License                               │
 └─────────────────────────────────────────────┘
 ```
 
@@ -88,6 +88,4 @@ This project has opinions:
 
 ## 📄 License
 
-This project is licensed under [CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International.
-
-You're free to use, adapt, and share this work for non-commercial purposes, as long as you give credit and share your changes under the same license.
+This project is licensed under the [MIT License](LICENSE).
