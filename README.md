@@ -2,7 +2,7 @@
 ┌─────────────────────────────────────────────┐
 │           doc-to-markdown                   │
 │                                             │
-│   v0.2.0  •  Mar 2 2026                     │
+│   v0.3.0  •  Mar 4 2026                     │
 │   CC BY-NC-SA 4.0                           │
 └─────────────────────────────────────────────┘
 ```
@@ -32,7 +32,7 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 
 ## 🌐 Web UI
 
-**[Try it in your browser](https://stlevy53.github.io/doc-to-markdown/)** — drag and drop a `.docx` or `.html` file and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
+**[Try it in your browser](https://stlevy53.github.io/doc-to-markdown/)** — drag and drop up to 5 `.docx` or `.html` files and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
 
 ## 🚀 Quick Start
 

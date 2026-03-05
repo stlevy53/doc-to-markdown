@@ -2,6 +2,7 @@
 
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.5/full/";
 const ACCEPTED_EXTENSIONS = [".docx", ".html", ".htm"];
+const MAX_FILES = 5;
 
 // CLI module files to load into Pyodide's virtual filesystem
 // Note: pdf_converter excluded — pdfplumber requires pypdfium2 (native C),
@@ -19,13 +20,18 @@ const fileInput = document.getElementById("fileInput");
 const status = document.getElementById("status");
 const outputArea = document.getElementById("outputArea");
 const output = document.getElementById("output");
+const fileNav = document.getElementById("fileNav");
+const activeFilename = document.getElementById("activeFilename");
 const copyBtn = document.getElementById("copyBtn");
 const downloadBtn = document.getElementById("downloadBtn");
-const resetBtn = document.getElementById("resetBtn");
+const clearBtn = document.getElementById("clearBtn");
 
 let pyodide = null;
 let pyodideReady = false;
-let currentFilename = "";
+
+// ── Multi-file state ─────────────────────────────────────────────────
+let conversions = []; // [{name, markdown, error}]
+let activeIndex = 0;
 
 // ── Status helpers ──────────────────────────────────────────────────
 function setStatus(msg, type) {
@@ -100,66 +106,119 @@ function isAccepted(filename) {
   return ACCEPTED_EXTENSIONS.includes(getExtension(filename));
 }
 
-async function handleFile(file) {
-  if (!file) return;
+async function convertFile(file) {
+  const arrayBuf = await file.arrayBuffer();
+  const uint8 = new Uint8Array(arrayBuf);
 
-  if (!isAccepted(file.name)) {
-    const ext = getExtension(file.name);
-    if (ext === ".pdf") {
-      setStatusHTML(
-        'PDF is not supported in the browser. To convert PDFs, use the CLI: ' +
-        '<code>python -m cli input.pdf -o output.md</code><br>' +
-        'Select a .docx or .html file, or drag the file to the field above to continue converting to markdown.',
-        "error"
-      );
-    } else {
-      setStatusHTML(
-        `Unsupported file type: <strong>${ext}</strong><br>` +
-        'Select a .docx or .html file, or drag the file to the field above to continue converting to markdown.',
-        "error"
-      );
-    }
+  pyodide.globals.set("_file_bytes", pyodide.toPy(uint8));
+  pyodide.globals.set("_file_name", file.name);
+
+  return await pyodide.runPythonAsync(`
+from converter import convert_file as _convert
+_convert(_file_name, bytes(_file_bytes))
+`);
+}
+
+async function handleFiles(fileList) {
+  const files = Array.from(fileList);
+
+  const remaining = MAX_FILES - conversions.length;
+  if (remaining <= 0) {
+    setStatus(`Maximum of ${MAX_FILES} files already loaded. Clear all to start over.`, "error");
     return;
   }
+
+  if (files.length > remaining) {
+    setStatus(`Only ${remaining} slot(s) remaining. First ${remaining} file(s) will be processed.`, "error");
+  }
+
+  const toProcess = files.slice(0, remaining);
 
   if (!pyodideReady) {
     setStatus("Python runtime is still loading. Please wait...", "loading");
     return;
   }
 
-  currentFilename = file.name;
-  setStatusHTML('<span class="spinner"></span>Converting...', "loading");
-  outputArea.classList.remove("visible");
+  for (const file of toProcess) {
+    if (!isAccepted(file.name)) {
+      const ext = getExtension(file.name);
+      let errorMsg;
+      if (ext === ".pdf") {
+        errorMsg = "PDF not supported in browser. Use the CLI: python -m cli input.pdf -o output.md";
+      } else {
+        errorMsg = `Unsupported file type: ${ext || "(no extension)"}`;
+      }
+      conversions.push({ name: file.name, markdown: null, error: errorMsg });
+      renderFileNav();
+      showFile(conversions.length - 1);
+      continue;
+    }
 
-  try {
-    const arrayBuf = await file.arrayBuffer();
-    const uint8 = new Uint8Array(arrayBuf);
+    setStatusHTML(`<span class="spinner"></span>Converting ${file.name}...`, "loading");
 
-    // Pass bytes to Python
-    pyodide.globals.set("_file_bytes", pyodide.toPy(uint8));
-    pyodide.globals.set("_file_name", file.name);
-
-    const markdown = await pyodide.runPythonAsync(`
-from converter import convert_file as _convert
-_convert(_file_name, bytes(_file_bytes))
-`);
-
-    output.value = markdown;
-    outputArea.classList.add("visible");
-    setStatus(`Converted ${file.name}`, "success");
-  } catch (err) {
-    const msg = err.message || String(err);
-    // Extract the Python error message if present
-    const pyErr = msg.includes("PythonError") ? msg.split("\n").pop() : msg;
-    setStatus(`Conversion failed: ${pyErr}`, "error");
+    try {
+      const markdown = await convertFile(file);
+      conversions.push({ name: file.name, markdown, error: null });
+      renderFileNav();
+      showFile(conversions.length - 1);
+      setStatus(`Converted ${file.name}`, "success");
+    } catch (err) {
+      const msg = err.message || String(err);
+      const pyErr = msg.includes("PythonError") ? msg.split("\n").pop() : msg;
+      conversions.push({ name: file.name, markdown: null, error: `Conversion failed: ${pyErr}` });
+      renderFileNav();
+      showFile(conversions.length - 1);
+      setStatus(`Failed to convert ${file.name}: ${pyErr}`, "error");
+    }
   }
+}
+
+// ── File nav ────────────────────────────────────────────────────────
+function renderFileNav() {
+  // Remove existing chips only (leave spacer + clear button in place)
+  fileNav.querySelectorAll(".file-chip").forEach(el => el.remove());
+
+  if (conversions.length === 0) {
+    fileNav.style.display = "none";
+    return;
+  }
+
+  fileNav.style.display = "flex";
+
+  conversions.forEach((conv, i) => {
+    const chip = document.createElement("button");
+    chip.className = "file-chip" +
+      (conv.error ? " error" : "") +
+      (i === activeIndex ? " active" : "");
+    chip.textContent = conv.name;
+    chip.title = conv.name;
+    chip.addEventListener("click", () => showFile(i));
+    fileNav.appendChild(chip);
+  });
+}
+
+function showFile(index) {
+  activeIndex = index;
+  const conv = conversions[index];
+
+  output.value = conv.error ? conv.error : conv.markdown;
+  activeFilename.textContent = conv.name;
+  outputArea.classList.add("visible");
+
+  if (conv.error) {
+    setStatus(conv.error, "error");
+  } else {
+    setStatus(`Converted ${conv.name}`, "success");
+  }
+
+  renderFileNav();
 }
 
 // ── Drop zone events ────────────────────────────────────────────────
 dropZone.addEventListener("click", () => fileInput.click());
 
 fileInput.addEventListener("change", (e) => {
-  if (e.target.files.length) handleFile(e.target.files[0]);
+  if (e.target.files.length) handleFiles(e.target.files);
   fileInput.value = "";  // Reset so the same file can be re-selected
 });
 
@@ -175,7 +234,7 @@ dropZone.addEventListener("dragleave", () => {
 dropZone.addEventListener("drop", (e) => {
   e.preventDefault();
   dropZone.classList.remove("drag-over");
-  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
 });
 
 // ── Action buttons ──────────────────────────────────────────────────
@@ -183,19 +242,21 @@ copyBtn.addEventListener("click", async () => {
   try {
     await navigator.clipboard.writeText(output.value);
     copyBtn.textContent = "Copied!";
-    setTimeout(() => { copyBtn.textContent = "Copy to Clipboard"; }, 1500);
+    setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
   } catch {
     // Fallback
     output.select();
     document.execCommand("copy");
     copyBtn.textContent = "Copied!";
-    setTimeout(() => { copyBtn.textContent = "Copy to Clipboard"; }, 1500);
+    setTimeout(() => { copyBtn.textContent = "Copy"; }, 1500);
   }
 });
 
 downloadBtn.addEventListener("click", () => {
-  const mdName = currentFilename.replace(/\.[^.]+$/, ".md");
-  const blob = new Blob([output.value], { type: "text/markdown" });
+  const conv = conversions[activeIndex];
+  if (!conv || conv.error) return;
+  const mdName = conv.name.replace(/\.[^.]+$/, ".md");
+  const blob = new Blob([conv.markdown], { type: "text/markdown" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -204,11 +265,14 @@ downloadBtn.addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-resetBtn.addEventListener("click", () => {
+clearBtn.addEventListener("click", () => {
+  conversions = [];
+  activeIndex = 0;
   output.value = "";
+  activeFilename.textContent = "";
   outputArea.classList.remove("visible");
-  status.className = "";  // Removes class, CSS default is display:none
-  currentFilename = "";
+  status.className = "";
+  renderFileNav();
 });
 
 // ── Boot ────────────────────────────────────────────────────────────

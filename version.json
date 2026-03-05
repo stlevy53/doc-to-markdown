@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
-  "date": "2026-02-28",
-  "description": "Initial release — AI skills and Python CLI for document-to-Markdown conversion"
+  "version": "0.3.0",
+  "date": "2026-03-04",
+  "description": "Multi-file web UI — convert up to 5 documents simultaneously in the browser"
 }

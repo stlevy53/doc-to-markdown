@@ -72,6 +72,48 @@
       display: none;
     }
 
+    /* File nav chips */
+    .file-nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+
+    .file-chip {
+      padding: 0.35rem 0.9rem;
+      border-radius: 999px;
+      border: 1.5px solid #b0b8c1;
+      background: #fff;
+      font-size: 0.82rem;
+      cursor: pointer;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+    .file-chip:hover {
+      border-color: #4361ee;
+      background: #eef1ff;
+      color: #4361ee;
+    }
+    .file-chip.active {
+      background: #4361ee;
+      border-color: #4361ee;
+      color: #fff;
+    }
+    .file-chip.error {
+      border-color: #dc3545;
+      color: #dc3545;
+    }
+    .file-chip.error.active {
+      background: #dc3545;
+      color: #fff;
+    }
+
     /* Status bar */
     #status {
       margin-top: 1rem;
@@ -116,6 +158,38 @@
       display: block;
     }
 
+    .output-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 0.75rem;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-bottom: none;
+      border-radius: 8px 8px 0 0;
+      font-size: 0.82rem;
+    }
+
+    .active-filename {
+      font-weight: 600;
+      color: #333;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .output-actions { display: flex; gap: 0.5rem; }
+
+    .output-actions button {
+      padding: 0.3rem 0.8rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: #fff;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .output-actions button:hover { background: #e9ecef; }
+
     .output-area textarea {
       width: 100%;
       min-height: 320px;
@@ -124,30 +198,27 @@
       line-height: 1.5;
       padding: 1rem;
       border: 1px solid #d1d5db;
-      border-radius: 8px;
+      border-radius: 0 0 8px 8px;
       background: #fff;
       color: #1a1a2e;
       resize: vertical;
     }
 
-    .actions {
-      margin-top: 0.75rem;
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .actions button {
-      padding: 0.5rem 1.2rem;
+    /* Clear All button */
+    .clear-btn {
+      padding: 0.3rem 0.8rem;
       border: 1px solid #d1d5db;
       border-radius: 6px;
       background: #fff;
-      font-size: 0.85rem;
+      color: #555;
+      font-size: 0.8rem;
       cursor: pointer;
-      transition: background 0.15s;
+      white-space: nowrap;
     }
-
-    .actions button:hover {
-      background: #f0f0f0;
+    .clear-btn:hover {
+      border-color: #aaa;
+      background: #f3f4f6;
+      color: #222;
     }
 
     /* Spinner */
@@ -179,26 +250,34 @@
 <body>
   <header>
     <h1>doc-to-markdown</h1>
-    <p>Drop a document, get clean Markdown. Files never leave your browser.</p>
+    <p>Drop up to 5 documents, and get clean Markdown files. Files never leave your browser.</p>
   </header>
 
   <div class="container">
     <div class="drop-zone" id="dropZone">
-      <p>Drag &amp; drop a file here, or click to browse</p>
+      <p>Drag &amp; drop files here. Up to 5 files can be converted at a time.</p>
       <p class="formats">.docx &nbsp; .html &nbsp;&nbsp; <span style="color:#aaa">(.pdf requires CLI)</span></p>
-      <input type="file" id="fileInput" accept=".docx,.html,.htm,.pdf">
+      <input type="file" id="fileInput" accept=".docx,.html,.htm,.pdf" multiple>
     </div>
+
+    <div class="file-nav" id="fileNav" style="display:none"></div>
 
     <div id="status"></div>
 
     <div class="output-area" id="outputArea">
-      <textarea id="output" readonly></textarea>
-      <div class="actions">
-        <button id="copyBtn">Copy to Clipboard</button>
-        <button id="downloadBtn">Download .md</button>
-        <button id="resetBtn">Convert Another</button>
+      <div class="output-header">
+        <div class="output-actions">
+          <button id="clearBtn">Start over</button>
+        </div>
+        <span id="activeFilename" class="active-filename"></span>
+        <div class="output-actions">
+          <button id="copyBtn">Copy</button>
+          <button id="downloadBtn">Download .md</button>
+        </div>
       </div>
+      <textarea id="output" readonly></textarea>
     </div>
+
   </div>
 
   <footer>
