@@ -34,6 +34,8 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 
 **[Try it in your browser](https://stlevy53.github.io/doc-to-markdown/)** — drag and drop up to 5 `.docx` or `.html` files and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
 
+![doc-to-markdown web UI demo](assets/DTMdemo.gif)
+
 ## 🚀 Quick Start
 
 Clone and install dependencies:
