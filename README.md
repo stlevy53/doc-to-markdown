@@ -15,6 +15,8 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 
 **doc-to-markdown** solves this. It's a set of AI conversion skills and a lightweight Python CLI that turn messy source documents into clean, well-structured Markdown. No fluff, no heavy dependencies, no manual cleanup.
 
+![doc-to-markdown web UI demo](assets/DTMdemo.gif)
+
 ## 🎯 Three Use Cases
 
 - **AI-Ready Formatting** — Convert docs into clean Markdown that AI agents can parse reliably. No smart quotes, no phantom formatting, no broken structure to confuse your prompts.
@@ -33,8 +35,6 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 ## 🌐 Web UI
 
 **[Try it in your browser](https://stlevy53.github.io/doc-to-markdown/)** — drag and drop up to 5 `.docx` or `.html` files and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
-
-![doc-to-markdown web UI demo](assets/DTMdemo.gif)
 
 ## 🚀 Quick Start
 
