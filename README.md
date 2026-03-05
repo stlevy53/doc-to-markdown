@@ -36,10 +36,12 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 
 ## 🚀 Quick Start
 
-Install the CLI:
+Clone and install dependencies:
 
 ```bash
-pip install doc-to-markdown
+git clone https://github.com/stlevy53/doc-to-markdown.git
+cd doc-to-markdown
+pip install -r requirements.txt
 ```
 
 Convert a document:
