@@ -15,7 +15,7 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 
 **doc-to-markdown** solves this. It's a set of AI conversion skills and a lightweight Python CLI that turn messy source documents into clean, well-structured Markdown. No fluff, no heavy dependencies, no manual cleanup.
 
-![doc-to-markdown web UI demo](assets/DTMdemo0.4.gif)
+![doc-to-markdown web UI demo](assets/DTMdemov0.4.gif)
 
 ## 🎯 Three Use Cases
 
