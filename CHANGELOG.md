@@ -7,6 +7,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.4.1] — 2026-03-06
+
+### Fixed
+- Pyodide script load failure now shows a clear error instead of hanging silently
+- Offline users see an immediate, actionable message on page load rather than a failed script error
+- Files over 50MB now show a size error with a CLI fallback suggestion instead of hanging the browser
+- Empty files (0 bytes) are caught before reaching the Python converter
+- Password-protected DOCX files now return a user-friendly error instead of a raw Python traceback
+- Download button on error-state files now shows feedback instead of silently doing nothing
+- Copy button on error-state files now shows feedback instead of copying the error text
+- Successful conversions producing empty output now warn the user instead of showing a blank textarea
+- Raw Python tracebacks no longer leak through to the status bar or output pane
+
+---
+
 ## [0.4.0] — 2026-03-05
 
 ### Added

@@ -3,6 +3,7 @@
 const PYODIDE_CDN = "https://cdn.jsdelivr.net/pyodide/v0.27.5/full/";
 const ACCEPTED_EXTENSIONS = [".docx", ".html", ".htm"];
 const MAX_FILES = 5;
+const MAX_FILE_BYTES = 50 * 1024 * 1024; // 50MB
 
 // CLI module files to load into Pyodide's virtual filesystem
 // Note: pdf_converter excluded — pdfplumber requires pypdfium2 (native C),
@@ -193,6 +194,23 @@ async function handleFiles(fileList) {
   }
 
   for (const file of toProcess) {
+    if (file.size === 0) {
+      const errorMsg = "This file appears to be empty and cannot be converted.";
+      conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown: null, error: errorMsg });
+      renderFileNav();
+      showFile(conversions.length - 1);
+      continue;
+    }
+
+    if (file.size > MAX_FILE_BYTES) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      const errorMsg = `File too large (${sizeMB}MB). The browser supports files up to 50MB. For larger files, use the CLI: python -m cli input.docx -o output.md`;
+      conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown: null, error: errorMsg });
+      renderFileNav();
+      showFile(conversions.length - 1);
+      continue;
+    }
+
     if (!isAccepted(file.name)) {
       const ext = getExtension(file.name);
       let errorMsg;
@@ -214,10 +232,16 @@ async function handleFiles(fileList) {
       conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown, error: null });
       renderFileNav();
       showFile(conversions.length - 1);
-      setStatus(`Converted ${file.name}`, "success");
+      if (!markdown || !markdown.trim()) {
+        setStatus(`${file.name} converted but produced no output. The file may have no readable content.`, "error");
+      } else {
+        setStatus(`Converted ${file.name}`, "success");
+      }
     } catch (err) {
       const msg = err.message || String(err);
-      const pyErr = msg.includes("PythonError") ? msg.split("\n").pop() : msg;
+      const pyErr = msg.includes("Traceback")
+        ? (msg.split("\n").filter(l => l.trim()).pop() || msg)
+        : msg;
       conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown: null, error: `Conversion failed: ${pyErr}` });
       renderFileNav();
       showFile(conversions.length - 1);
@@ -295,6 +319,11 @@ dropZone.addEventListener("drop", (e) => {
 
 // ── Action buttons ──────────────────────────────────────────────────
 copyBtn.addEventListener("click", async () => {
+  const conv = conversions[activeIndex];
+  if (!conv || conv.error) {
+    setStatus("Nothing to copy — this file failed to convert.", "error");
+    return;
+  }
   try {
     await navigator.clipboard.writeText(output.value);
     copyBtn.textContent = "Copied!";
@@ -310,7 +339,10 @@ copyBtn.addEventListener("click", async () => {
 
 downloadBtn.addEventListener("click", () => {
   const conv = conversions[activeIndex];
-  if (!conv || conv.error) return;
+  if (!conv || conv.error) {
+    setStatus("Nothing to download — this file failed to convert.", "error");
+    return;
+  }
   const mdName = conv.name.replace(/\.[^.]+$/, ".md");
   const blob = new Blob([conv.markdown], { type: "text/markdown" });
   const url = URL.createObjectURL(blob);
@@ -334,7 +366,12 @@ clearBtn.addEventListener("click", () => {
 });
 
 // ── Boot ────────────────────────────────────────────────────────────
-const pyodideScript = document.createElement("script");
-pyodideScript.src = PYODIDE_CDN + "pyodide.js";
-pyodideScript.onload = () => initPyodide();
-document.head.appendChild(pyodideScript);
+if (!navigator.onLine) {
+  setStatus("No internet connection. doc-to-markdown requires an internet connection on first load to download the Python runtime. Reconnect and refresh the page.", "error");
+} else {
+  const pyodideScript = document.createElement("script");
+  pyodideScript.src = PYODIDE_CDN + "pyodide.js";
+  pyodideScript.onload = () => initPyodide();
+  pyodideScript.onerror = () => setStatus("Failed to load Python runtime. Check your internet connection and refresh the page.", "error");
+  document.head.appendChild(pyodideScript);
+}
