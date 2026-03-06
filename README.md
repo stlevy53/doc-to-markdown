@@ -2,7 +2,7 @@
 ┌─────────────────────────────────────────────┐
 │           doc-to-markdown                   │
 │                                             │
-│   v0.3.0  •  Mar 4 2026                     │
+│   v0.4.0  •  Mar 5 2026                     │
 │   MIT License                               │
 └─────────────────────────────────────────────┘
 ```
@@ -35,6 +35,8 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 ## 🌐 Web UI
 
 **[Try it in your browser](https://stlevy53.github.io/doc-to-markdown/)** — drag and drop up to 5 `.docx` or `.html` files and get clean Markdown instantly. No install required. Files never leave your machine (runs entirely client-side via Pyodide). PDF conversion requires the CLI.
+
+The UI shows a side-by-side preview: the source document on the left (DOCX rendered natively, HTML in a sandboxed iframe), converted Markdown on the right.
 
 ## 🚀 Quick Start
 

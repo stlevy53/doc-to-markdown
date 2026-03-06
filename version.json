@@ -1,5 +1,5 @@
 {
-  "version": "0.3.0",
-  "date": "2026-03-04",
-  "description": "Multi-file web UI — convert up to 5 documents simultaneously in the browser"
+  "version": "0.4.0",
+  "date": "2026-03-05",
+  "description": "Side-by-side source preview pane in the web UI — DOCX and HTML render next to converted Markdown"
 }

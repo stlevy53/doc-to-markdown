@@ -190,18 +190,57 @@
     }
     .output-actions button:hover { background: #e9ecef; }
 
-    .output-area textarea {
+    /* Container expands when split view is active */
+    .container.split { max-width: 1200px; }
+
+    /* Panes row */
+    .panes {
+      display: flex;
+      border: 1px solid #d1d5db;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      overflow: hidden;
+      min-height: 400px;
+    }
+
+    .pane { flex: 1; min-width: 0; overflow: auto; }
+
+    .pane-source {
+      border-right: 1px solid #d1d5db;
+      background: #fff;
+    }
+
+    .pane-markdown { display: flex; flex-direction: column; }
+
+    /* Textarea inside pane */
+    .pane-markdown textarea {
+      flex: 1;
       width: 100%;
-      min-height: 320px;
+      min-height: 0;
+      height: 100%;
       font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
       font-size: 0.85rem;
       line-height: 1.5;
       padding: 1rem;
-      border: 1px solid #d1d5db;
-      border-radius: 0 0 8px 8px;
+      border: none;
+      border-radius: 0;
       background: #fff;
       color: #1a1a2e;
-      resize: vertical;
+      resize: none;
+    }
+
+    /* docx-preview style scoping */
+    #sourcePane .docx-wrapper { font-size: 0.9rem; }
+
+    /* Placeholder text */
+    .preview-unavailable { color: #888; font-size: 0.85rem; padding: 1rem; }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .panes { flex-direction: column; }
+      .pane-source { border-right: none; border-bottom: 1px solid #d1d5db; max-height: 300px; }
+      .pane-markdown { min-height: 400px; }
+      .container.split { max-width: 100%; }
     }
 
     /* Clear All button */
@@ -275,7 +314,12 @@
           <button id="downloadBtn">Download .md</button>
         </div>
       </div>
-      <textarea id="output" readonly></textarea>
+      <div class="panes">
+        <div class="pane pane-source" id="sourcePane"></div>
+        <div class="pane pane-markdown">
+          <textarea id="output" readonly></textarea>
+        </div>
+      </div>
     </div>
 
   </div>

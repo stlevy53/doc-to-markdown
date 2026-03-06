@@ -29,8 +29,61 @@ const clearBtn = document.getElementById("clearBtn");
 let pyodide = null;
 let pyodideReady = false;
 
+let docxPreviewReady = false;
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("Failed to load " + src));
+    document.head.appendChild(s);
+  });
+}
+
+function loadDocxPreview() {
+  if (docxPreviewReady) return Promise.resolve();
+  return loadScript("https://cdn.jsdelivr.net/npm/jszip@3/dist/jszip.min.js")
+    .then(() => loadScript("https://cdn.jsdelivr.net/npm/docx-preview@latest/dist/docx-preview.min.js"))
+    .then(() => { docxPreviewReady = true; });
+}
+
+async function renderSourcePane(conv) {
+  const pane = document.getElementById("sourcePane");
+  pane.innerHTML = "";
+
+  if (!conv.file) {
+    pane.innerHTML = '<p class="preview-unavailable">Preview not available</p>';
+    return;
+  }
+
+  if (conv.fileType === ".docx") {
+    try {
+      await loadDocxPreview();
+      const arrayBuf = await conv.file.arrayBuffer();
+      await window.docx.renderAsync(arrayBuf, pane);
+      const wrapper = pane.querySelector(".docx-wrapper");
+      if (wrapper && wrapper.scrollWidth > pane.clientWidth) {
+        wrapper.style.zoom = pane.clientWidth / wrapper.scrollWidth;
+      }
+      pane.scrollTop = 0;
+    } catch {
+      pane.innerHTML = '<p class="preview-unavailable">DOCX preview failed</p>';
+    }
+  } else if (conv.fileType === ".html" || conv.fileType === ".htm") {
+    const iframe = document.createElement("iframe");
+    iframe.sandbox = "allow-same-origin";
+    iframe.style.cssText = "width:100%;height:100%;border:none;";
+    pane.appendChild(iframe);
+    iframe.srcdoc = await conv.file.text();
+    iframe.onload = () => { iframe.contentWindow.scrollTo(0, 0); };
+  } else {
+    pane.innerHTML = '<p class="preview-unavailable">Preview not available for this file type</p>';
+  }
+}
+
 // ── Multi-file state ─────────────────────────────────────────────────
-let conversions = []; // [{name, markdown, error}]
+let conversions = []; // [{name, file, fileType, markdown, error}]
 let activeIndex = 0;
 
 // ── Status helpers ──────────────────────────────────────────────────
@@ -148,7 +201,7 @@ async function handleFiles(fileList) {
       } else {
         errorMsg = `Unsupported file type: ${ext || "(no extension)"}`;
       }
-      conversions.push({ name: file.name, markdown: null, error: errorMsg });
+      conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown: null, error: errorMsg });
       renderFileNav();
       showFile(conversions.length - 1);
       continue;
@@ -158,14 +211,14 @@ async function handleFiles(fileList) {
 
     try {
       const markdown = await convertFile(file);
-      conversions.push({ name: file.name, markdown, error: null });
+      conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown, error: null });
       renderFileNav();
       showFile(conversions.length - 1);
       setStatus(`Converted ${file.name}`, "success");
     } catch (err) {
       const msg = err.message || String(err);
       const pyErr = msg.includes("PythonError") ? msg.split("\n").pop() : msg;
-      conversions.push({ name: file.name, markdown: null, error: `Conversion failed: ${pyErr}` });
+      conversions.push({ name: file.name, file, fileType: getExtension(file.name), markdown: null, error: `Conversion failed: ${pyErr}` });
       renderFileNav();
       showFile(conversions.length - 1);
       setStatus(`Failed to convert ${file.name}: ${pyErr}`, "error");
@@ -204,6 +257,9 @@ function showFile(index) {
   output.value = conv.error ? conv.error : conv.markdown;
   activeFilename.textContent = conv.name;
   outputArea.classList.add("visible");
+  output.scrollTop = 0;
+  renderSourcePane(conv);
+  document.querySelector(".container").classList.add("split");
 
   if (conv.error) {
     setStatus(conv.error, "error");
@@ -272,6 +328,8 @@ clearBtn.addEventListener("click", () => {
   activeFilename.textContent = "";
   outputArea.classList.remove("visible");
   status.className = "";
+  document.querySelector(".container").classList.remove("split");
+  document.getElementById("sourcePane").innerHTML = "";
   renderFileNav();
 });
 

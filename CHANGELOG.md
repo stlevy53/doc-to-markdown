@@ -7,6 +7,22 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.4.0] — 2026-03-05
+
+### Added
+- Side-by-side source preview pane in the web UI — see the original document next to the converted Markdown
+- DOCX files render via docx-preview (lazy-loaded from CDN on first use; JSZip loaded as dependency)
+- HTML/HTM files render in a sandboxed iframe (scripts blocked)
+- "Preview not available" placeholder for unsupported file types (PDF, etc.)
+- `docs/serve.py` — local dev server with COOP/COEP headers required for Pyodide SharedArrayBuffer support
+
+### Changed
+- Output area expands to 1200px max-width when split view is active; collapses back on "Start over"
+- Both panes scroll to top on each file load or chip switch
+- Panes stack vertically on mobile (source on top, Markdown below)
+
+---
+
 ## [0.3.0] — 2026-03-04
 
 ### Added
