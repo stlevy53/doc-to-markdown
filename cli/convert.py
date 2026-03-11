@@ -15,6 +15,7 @@ def detect_format(filepath):
         ".pdf": "pdf",
         ".html": "html",
         ".htm": "html",
+        ".md": "md",
     }
     return format_map.get(ext)
 
@@ -53,7 +54,7 @@ def convert(filepath, fmt=None):
     if fmt is None:
         raise ValueError(
             f"Cannot detect format for '{filepath}'. "
-            "Use --format to specify: docx, pdf, html"
+            "Use --format to specify: docx, pdf, html, md"
         )
 
     if not os.path.exists(filepath):
@@ -68,6 +69,9 @@ def convert(filepath, fmt=None):
     elif fmt == "html":
         from cli.html_converter import convert_html
         return convert_html(filepath)
+    elif fmt == "md":
+        from cli.md_converter import convert_md
+        return convert_md(filepath)
     else:
         raise ValueError(f"Unsupported format: {fmt}")
 
@@ -85,22 +89,35 @@ def main():
     )
     parser.add_argument(
         "--format",
-        choices=["docx", "pdf", "html"],
+        choices=["docx", "pdf", "html", "md"],
         help="Force input format (auto-detected from extension if omitted)",
     )
 
     args = parser.parse_args()
 
     try:
-        markdown = convert(args.input, fmt=args.format)
-        markdown = post_process(markdown)
+        fmt = args.format or detect_format(args.input)
+        result = convert(args.input, fmt=fmt)
 
-        if args.output:
-            with open(args.output, "w", encoding="utf-8") as f:
-                f.write(markdown)
+        if fmt == "md":
+            # Binary output: DOCX bytes
+            if not args.output:
+                print(
+                    "Error: MD to DOCX conversion requires an output file path (-o output.docx).",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            with open(args.output, "wb") as f:
+                f.write(result)
             print(f"Converted: {args.input} -> {args.output}", file=sys.stderr)
         else:
-            sys.stdout.write(markdown)
+            markdown = post_process(result)
+            if args.output:
+                with open(args.output, "w", encoding="utf-8") as f:
+                    f.write(markdown)
+                print(f"Converted: {args.input} -> {args.output}", file=sys.stderr)
+            else:
+                sys.stdout.write(markdown)
 
     except (ValueError, FileNotFoundError) as e:
         print(f"Error: {e}", file=sys.stderr)

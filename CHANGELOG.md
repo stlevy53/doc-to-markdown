@@ -7,6 +7,21 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.5.0] — 2026-03-11
+
+### Added
+- CLI Markdown to DOCX conversion (`python -m cli input.md -o output.docx`)
+- New `cli/md_converter.py` — walks mistune v3 AST to build a Word document
+- Supports: headings (h1–h6), paragraphs, bold, italic, inline code, code blocks, blockquotes, bullet/numbered lists, tables, thematic breaks, links
+- `mistune>=3.0.0` added to `requirements.txt`
+
+### Changed
+- `detect_format()` now maps `.md` → `"md"`
+- `convert()` dispatcher routes `"md"` to `md_converter.convert_md()`, which returns DOCX bytes
+- `main()` writes binary output for MD input; errors clearly if no `-o` flag provided
+
+---
+
 ## [0.4.1] — 2026-03-06
 
 ### Fixed

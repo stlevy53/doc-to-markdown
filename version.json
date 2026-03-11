@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
-  "date": "2026-03-05",
-  "description": "Side-by-side source preview pane in the web UI — DOCX and HTML render next to converted Markdown"
+  "version": "0.5.0",
+  "date": "2026-03-11",
+  "description": "CLI Markdown to DOCX conversion — first reverse-conversion direction"
 }

@@ -2,7 +2,7 @@
 ┌─────────────────────────────────────────────┐
 │           doc-to-markdown                   │
 │                                             │
-│   v0.4.1  •  Mar 6 2026                     │
+│   v0.5.0  •  Mar 11 2026                    │
 │   MIT License                               │
 └─────────────────────────────────────────────┘
 ```
@@ -31,6 +31,7 @@ Maybe you're feeding documents to an AI agent and the formatting comes out garbl
 | Word `.docx` | Direct | ✅ | ✅ |
 | PDF | Direct | ✅ | -- |
 | Confluence | HTML export | ✅ | ✅ |
+| Markdown | `.md` → `.docx` | ✅ | -- |
 
 ## 🌐 Web UI
 
@@ -64,6 +65,12 @@ Convert a Confluence HTML export:
 
 ```bash
 python scripts/convert.py exported-page.html --format confluence -o page.md
+```
+
+Convert Markdown to Word:
+
+```bash
+python scripts/convert.py notes.md -o notes.docx
 ```
 
 ## 🧠 AI Skills
