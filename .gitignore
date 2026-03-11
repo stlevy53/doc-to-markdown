@@ -33,3 +33,4 @@ htmlcov/
 # Project-specific
 test-output/
 *.tmp.md
+tests/fixtures/*.docx

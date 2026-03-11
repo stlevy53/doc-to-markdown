@@ -56,7 +56,7 @@ def _render_inline(paragraph, nodes):
             paragraph.add_run(text)
         elif ntype in ("softlinebreak", "linebreak"):
             paragraph.add_run(" ")
-        elif ntype == "html_inline":
+        elif ntype in ("html_inline", "inline_html"):
             pass
         else:
             raw = node.get("raw", "")
